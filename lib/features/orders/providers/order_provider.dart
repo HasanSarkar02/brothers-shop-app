@@ -10,14 +10,18 @@ final orderServiceProvider = Provider<OrderService>((ref) {
 });
 
 // ═══════════════════════════════════════
-// Auth User: All Orders List
+// Auth User: All Orders List State
 // ═══════════════════════════════════════
 class OrderListState {
   final bool isLoading;
   final List<OrderModel> orders;
   final String? error;
 
-  OrderListState({this.isLoading = false, this.orders = const [], this.error});
+  const OrderListState({
+    this.isLoading = false,
+    this.orders = const [],
+    this.error,
+  });
 
   OrderListState copyWith({
     bool? isLoading,
@@ -36,8 +40,7 @@ class OrderListState {
 class OrderListNotifier extends StateNotifier<OrderListState> {
   final OrderService _service;
 
-  // ✅ Constructor এ auto fetch বন্ধ
-  OrderListNotifier(this._service) : super(OrderListState());
+  OrderListNotifier(this._service) : super(const OrderListState());
 
   Future<void> fetchOrders() async {
     state = state.copyWith(isLoading: true, clearError: true);
@@ -45,10 +48,7 @@ class OrderListNotifier extends StateNotifier<OrderListState> {
       final orders = await _service.getMyOrders();
       state = state.copyWith(isLoading: false, orders: orders);
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString().replaceAll('Exception: ', ''),
-      );
+      state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
 
@@ -67,16 +67,11 @@ class GuestOrderState {
   final bool isSearching;
   final bool isOtpSent;
   final bool isVerifyingOtp;
-
-  // Direct track result — single order
   final OrderModel? trackedOrder;
-
-  // OTP verify result — multiple orders
   final List<OrderModel> orders;
-
   final String? error;
 
-  GuestOrderState({
+  const GuestOrderState({
     this.isSearching = false,
     this.isOtpSent = false,
     this.isVerifyingOtp = false,
@@ -85,7 +80,6 @@ class GuestOrderState {
     this.error,
   });
 
-  // কোনো result আছে কিনা
   bool get hasResult => trackedOrder != null || orders.isNotEmpty;
 
   GuestOrderState copyWith({
@@ -103,7 +97,7 @@ class GuestOrderState {
       isOtpSent: isOtpSent ?? this.isOtpSent,
       isVerifyingOtp: isVerifyingOtp ?? this.isVerifyingOtp,
       trackedOrder: clearResult ? null : (trackedOrder ?? this.trackedOrder),
-      orders: clearResult ? [] : (orders ?? this.orders),
+      orders: clearResult ? const [] : (orders ?? this.orders),
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -115,10 +109,9 @@ class GuestOrderState {
 class GuestOrderNotifier extends StateNotifier<GuestOrderState> {
   final OrderService _service;
 
-  GuestOrderNotifier(this._service) : super(GuestOrderState());
+  GuestOrderNotifier(this._service) : super(const GuestOrderState());
 
   // ── Direct Track (OTP ছাড়া) ───────────
-  // Order Number + Phone দিয়ে সরাসরি track
   Future<void> trackOrder(String orderNumber, String phone) async {
     state = state.copyWith(
       isSearching: true,
@@ -132,30 +125,22 @@ class GuestOrderNotifier extends StateNotifier<GuestOrderState> {
       );
       state = state.copyWith(isSearching: false, trackedOrder: order);
     } catch (e) {
-      state = state.copyWith(
-        isSearching: false,
-        error: e.toString().replaceAll('Exception: ', ''),
-      );
+      state = state.copyWith(isSearching: false, error: e.toString());
     }
   }
 
   // ── Send OTP ───────────────────────────
-  // Phone নম্বরে OTP পাঠাবে
   Future<void> sendOtp(String orderNumber, String phone) async {
     state = state.copyWith(isSearching: true, clearError: true);
     try {
       await _service.sendOtp(orderNumber: orderNumber, phone: phone);
       state = state.copyWith(isSearching: false, isOtpSent: true);
     } catch (e) {
-      state = state.copyWith(
-        isSearching: false,
-        error: e.toString().replaceAll('Exception: ', ''),
-      );
+      state = state.copyWith(isSearching: false, error: e.toString());
     }
   }
 
   // ── Verify OTP ─────────────────────────
-  // OTP verify করে সব orders দেখাবে
   Future<void> verifyOtp(String orderNumber, String phone, String otp) async {
     state = state.copyWith(isVerifyingOtp: true, clearError: true);
     try {
@@ -167,18 +152,15 @@ class GuestOrderNotifier extends StateNotifier<GuestOrderState> {
       state = state.copyWith(
         isVerifyingOtp: false,
         orders: orders,
-        isOtpSent: false, // OTP screen hide করো
+        isOtpSent: false,
       );
     } catch (e) {
-      state = state.copyWith(
-        isVerifyingOtp: false,
-        error: e.toString().replaceAll('Exception: ', ''),
-      );
+      state = state.copyWith(isVerifyingOtp: false, error: e.toString());
     }
   }
 
   // ── Reset ──────────────────────────────
-  void reset() => state = GuestOrderState();
+  void reset() => state = const GuestOrderState();
 }
 
 final guestOrderProvider =

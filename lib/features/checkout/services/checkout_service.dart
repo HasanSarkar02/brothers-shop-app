@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../../core/api/dio_client.dart';
+import '../../../core/exceptions/api_error_handler.dart';
+import '../../../core/exceptions/api_exception.dart';
 import '../models/checkout_model.dart';
 
 class CheckoutService {
@@ -11,16 +13,15 @@ class CheckoutService {
       final response = await _dio.get('/checkout');
       final data = response.data;
 
-      if (data['status'] == true) {
-        return CheckoutSummaryModel.fromJson(data['data']);
-      } else {
-        throw Exception(data['message'] ?? 'Failed to load checkout summary');
+      if (data['status'] != true) {
+        throw ApiException(
+          data['message'] ?? 'Failed to load checkout summary',
+        );
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 400) {
-        throw Exception(e.response?.data['message'] ?? 'Your cart is empty.');
-      }
-      throw Exception('Network error. Please check your connection.');
+
+      return CheckoutSummaryModel.fromJson(data['data']);
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
   }
 
@@ -33,26 +34,13 @@ class CheckoutService {
       );
       final data = response.data;
 
-      if (data['status'] == true) {
-        return OrderResponseModel.fromJson(data['data']);
-      } else {
-        throw Exception(data['message'] ?? 'Failed to place order');
+      if (data['status'] != true) {
+        throw ApiException(data['message'] ?? 'Failed to place order');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 400) {
-        throw Exception(e.response?.data['message'] ?? 'Order failed.');
-      }
-      if (e.response?.statusCode == 422) {
-        final errors = e.response?.data['errors'] as Map<String, dynamic>?;
-        if (errors != null) {
-          final firstError = errors.values.first;
-          throw Exception(
-            firstError is List ? firstError.first : firstError.toString(),
-          );
-        }
-        throw Exception('Validation error. Please check your inputs.');
-      }
-      throw Exception('Network error. Please try again.');
+
+      return OrderResponseModel.fromJson(data['data']);
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
   }
 
@@ -62,19 +50,13 @@ class CheckoutService {
       final response = await _dio.get('/checkout/confirmation/$orderNumber');
       final data = response.data;
 
-      if (data['status'] == true) {
-        return data['data'];
-      } else {
-        throw Exception(data['message'] ?? 'Order not found');
+      if (data['status'] != true) {
+        throw ApiException(data['message'] ?? 'Order not found');
       }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        throw Exception('Order not found.');
-      }
-      if (e.response?.statusCode == 403) {
-        throw Exception('Unauthorized to view this order.');
-      }
-      throw Exception('Network error. Please try again.');
+
+      return data['data'];
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
   }
 }

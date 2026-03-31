@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/storage/local_storage.dart';
@@ -20,12 +20,21 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isLoggedIn = false;
   bool _isChecking = true;
+  String _appVersion = "1.0.0";
   Map<String, dynamic> _localUser = {};
 
   @override
   void initState() {
     super.initState();
+    _loadAppVersion();
     _checkAuth();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = packageInfo.version; // "1.0.1"
+    });
   }
 
   Future<void> _checkAuth() async {
@@ -223,7 +232,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    'Version 1.0.0',
+                    'Version $_appVersion',
                     style: TextStyle(
                       fontSize: 11.sp,
                       color: AppColors.inkLight,

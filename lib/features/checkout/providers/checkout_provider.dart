@@ -11,7 +11,7 @@ class CheckoutState {
   final CheckoutSummaryModel? summary;
   final String? error;
 
-  CheckoutState({
+  const CheckoutState({
     this.isLoadingSummary = false,
     this.isPlacingOrder = false,
     this.summary,
@@ -35,16 +35,17 @@ class CheckoutState {
   }
 }
 
-// ── ২. Service Provider ───────────────────────────────────
+// ──  Service Provider ───────────────────────────────────
 final checkoutServiceProvider = Provider<CheckoutService>((ref) {
   return CheckoutService();
 });
 
-// ── ৩. Controller/Notifier ────────────────────────────────
+// ──  Controller/Notifier ────────────────────────────────
 class CheckoutController extends StateNotifier<CheckoutState> {
   final CheckoutService _service;
 
-  CheckoutController(this._service) : super(CheckoutState()) {
+  // Added const
+  CheckoutController(this._service) : super(const CheckoutState()) {
     fetchSummary();
   }
 
@@ -69,10 +70,10 @@ class CheckoutController extends StateNotifier<CheckoutState> {
     try {
       final response = await _service.placeOrder(orderData);
       state = state.copyWith(isPlacingOrder: false);
-      return response; // সফল হলে রেসপন্স রিটার্ন করবে, যাতে UI থেকে রিডাইরেক্ট করা যায়
+      return response; // সফল হলে রেসপন্স রিটার্ন করবে
     } catch (e) {
       state = state.copyWith(isPlacingOrder: false, error: e.toString());
-      rethrow; // UI-তে SnackBar দেখানোর জন্য এরর থ্রো করছি
+      rethrow; // UI-তে try-catch দিয়ে SnackBar দেখানোর জন্য
     }
   }
 }

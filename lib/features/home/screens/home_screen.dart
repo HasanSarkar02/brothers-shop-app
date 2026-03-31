@@ -10,12 +10,86 @@ import '../providers/home_provider.dart';
 import '../../../shared/widgets/product_card.dart';
 import '../../../shared/widgets/section_header.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../core/services/update_service.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  // ── InitState এ আপডেট চেক করা ──
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAppUpdate();
+    });
+  }
+
+  // ──আপডেট চেক করার লজিক ──
+  void _checkAppUpdate() {
+    ref.read(updateServiceProvider).checkForUpdate((downloadUrl) {
+      if (mounted) _showUpdateDialog(downloadUrl);
+      _showUpdateDialog(downloadUrl);
+    });
+  }
+
+  // ──আপডেট এভেইলেবল ডায়ালগ ──
+  void _showUpdateDialog(String downloadUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          title: const Text('New Update Available! 🚀'),
+          content: const Text(
+            'A new version of the app is available. Please update to get the latest features and bug fixes.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Later', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _startDownload(downloadUrl);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: const Text(
+                'Update Now',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _startDownload(String apkUrl) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return _DownloadProgressDialog(apkUrl: apkUrl);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final homeAsync = ref.watch(homeDataProvider);
 
     return Scaffold(
@@ -180,6 +254,108 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ── Download Progress Dialog (New) ──────────────────
+class _DownloadProgressDialog extends ConsumerStatefulWidget {
+  final String apkUrl;
+  const _DownloadProgressDialog({required this.apkUrl});
+
+  @override
+  ConsumerState<_DownloadProgressDialog> createState() =>
+      _DownloadProgressDialogState();
+}
+
+class _DownloadProgressDialogState
+    extends ConsumerState<_DownloadProgressDialog> {
+  int _progress = 0;
+  String _statusMessage = "Downloading update...";
+  bool _isError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startDownload();
+  }
+
+  void _startDownload() {
+    ref
+        .read(updateServiceProvider)
+        .downloadAndInstallUpdate(
+          apkUrl: widget.apkUrl,
+          onProgress: (progress) {
+            setState(() {
+              _progress = progress;
+            });
+          },
+          onDownloadComplete: () {
+            setState(() {
+              _progress = 100;
+              _statusMessage = "Download complete! Opening installer...";
+            });
+
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) Navigator.pop(context);
+            });
+          },
+          onError: (error) {
+            setState(() {
+              _isError = true;
+              _statusMessage = "Download failed: $error";
+            });
+          },
+        );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+      title: Text(
+        _isError ? 'Error!' : 'Updating App',
+        style: TextStyle(
+          color: _isError ? Colors.red : AppColors.ink,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _statusMessage,
+            style: TextStyle(fontSize: 14.sp),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20.h),
+
+          if (!_isError) ...[
+            LinearProgressIndicator(
+              value: _progress / 100,
+              backgroundColor: AppColors.border,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primary,
+              ),
+              minHeight: 8.h,
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            SizedBox(height: 12.h),
+
+            Text(
+              '$_progress%',
+              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        if (_isError)
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close', style: TextStyle(color: Colors.red)),
+          ),
+      ],
     );
   }
 }

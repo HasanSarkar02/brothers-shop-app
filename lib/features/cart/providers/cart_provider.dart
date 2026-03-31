@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/cart_model.dart';
 import '../repository/cart_repository.dart';
+import '../../../core/exceptions/api_error_handler.dart';
+import '../../../core/exceptions/api_exception.dart';
 
 final cartRepositoryProvider = Provider((_) => CartRepository());
 
@@ -29,6 +31,7 @@ class CartState {
     double? savings,
     bool? isLoading,
     String? error,
+    bool clearError = false,
   }) => CartState(
     items: items ?? this.items,
     cartTotal: cartTotal ?? this.cartTotal,
@@ -76,7 +79,7 @@ class CartNotifier extends StateNotifier<CartState> {
       if (result['status'] == true) {
         await loadCart();
       } else {
-        throw Exception(result['message'] ?? 'Failed to add to cart');
+        throw ApiException(result['message'] ?? 'Failed to add to cart');
       }
     } catch (e) {
       rethrow;
@@ -113,7 +116,6 @@ class CartNotifier extends StateNotifier<CartState> {
 
   // ── Remove item (Optimistic UI) ───────────────
   Future<void> removeItem(int cartId) async {
-    // ✅ Optimistic update
     final oldItems = state.items;
     final newItems = state.items
         .where((item) => item.cartId != cartId)
@@ -147,7 +149,6 @@ final cartProvider = StateNotifierProvider<CartNotifier, CartState>((ref) {
   return CartNotifier(ref.read(cartRepositoryProvider));
 });
 
-// ── Cart count এর জন্য আলাদা provider ─────────────
 final cartCountProvider = Provider<int>((ref) {
   return ref.watch(cartProvider).cartCount;
 });

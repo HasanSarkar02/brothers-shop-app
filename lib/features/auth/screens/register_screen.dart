@@ -50,16 +50,39 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    if (_useEmail && email.isEmpty) {
-      _showError('Please enter your email');
-      return;
+    // ── Email Validation ─────────────────────────
+    if (_useEmail) {
+      if (email.isEmpty) {
+        _showError('Please enter your email');
+        return;
+      }
+
+      // Standard Email Regex Pattern
+      final emailRegex = RegExp(
+        r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+      );
+      if (!emailRegex.hasMatch(email)) {
+        _showError('Please enter a valid email address');
+        return;
+      }
     }
 
-    if (!_useEmail && phone.isEmpty) {
-      _showError('Please enter your phone number');
-      return;
+    // ── Phone Validation (Bangladeshi) ───────────
+    if (!_useEmail) {
+      if (phone.isEmpty) {
+        _showError('Please enter your phone number');
+        return;
+      }
+
+      // Bangladeshi Phone Regex Pattern (+8801..., 8801..., or 01...)
+      final phoneRegex = RegExp(r"^(?:\+88|88)?(01[3-9]\d{8})$");
+      if (!phoneRegex.hasMatch(phone)) {
+        _showError('Please enter a valid Bangladeshi phone number');
+        return;
+      }
     }
 
+    // ── Password Validation ──────────────────────
     if (password.isEmpty || password.length < 8) {
       _showError('Password must be at least 8 characters');
       return;

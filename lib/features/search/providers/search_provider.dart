@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/api/dio_client.dart';
+import '../repository/search_repository.dart';
+
+final searchRepositoryProvider = Provider((_) => SearchRepository());
 
 // ── Search State ──────────────────────────────────────────
 class SearchState {
@@ -10,7 +12,7 @@ class SearchState {
   final String query;
   final String? error;
 
-  SearchState({
+  const SearchState({
     this.isLoading = false,
     this.instantResults = const [],
     this.query = '',
@@ -22,59 +24,58 @@ class SearchState {
     List<dynamic>? instantResults,
     String? query,
     String? error,
+    bool clearError = false,
   }) {
     return SearchState(
       isLoading: isLoading ?? this.isLoading,
       instantResults: instantResults ?? this.instantResults,
       query: query ?? this.query,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
 
-// ── Search Notifier with Debounce ─────────────────────────
+// ── Search Notifier with Debounce & CancelToken ───────────
 class SearchNotifier extends StateNotifier<SearchState> {
-  final Dio _dio;
+  final SearchRepository _repo;
   Timer? _debounce;
+  CancelToken? _cancelToken;
 
-  SearchNotifier(this._dio) : super(SearchState());
+  SearchNotifier(this._repo) : super(const SearchState());
 
   void onSearchQueryChanged(String query) {
-    // স্টেট আপডেট করছি যাতে UI-তে লেখাটা থাকে
-    state = state.copyWith(query: query);
-
-    // আগের টাইমার ক্যান্সেল করে দিচ্ছি (Debounce Logic)
     if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _cancelToken?.cancel('User typed a new query');
+
+    state = state.copyWith(query: query, clearError: true);
 
     if (query.trim().length < 2) {
       state = state.copyWith(instantResults: [], isLoading: false);
       return;
     }
 
-    // ইউজার টাইপ থামানোর ৩০০ মিলিসেকেন্ড পর API কল হবে
     _debounce = Timer(const Duration(milliseconds: 300), () {
       _fetchInstantResults(query);
     });
   }
 
   Future<void> _fetchInstantResults(String query) async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final response = await _dio.get(
-        '/search/instant',
-        queryParameters: {'q': query},
-      );
-      final res = response.data;
+    state = state.copyWith(isLoading: true);
 
-      if (res['success'] == true) {
-        state = state.copyWith(
-          isLoading: false,
-          instantResults: res['results'] ?? [],
-        );
-      } else {
-        state = state.copyWith(isLoading: false, error: res['message']);
-      }
+    _cancelToken = CancelToken();
+
+    try {
+      final results = await _repo.fetchInstantResults(
+        query,
+        cancelToken: _cancelToken,
+      );
+
+      state = state.copyWith(isLoading: false, instantResults: results);
     } catch (e) {
+      if (e is DioException && CancelToken.isCancel(e)) {
+        return;
+      }
+
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
@@ -82,15 +83,13 @@ class SearchNotifier extends StateNotifier<SearchState> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _cancelToken?.cancel('Notifier disposed');
     super.dispose();
   }
 }
 
-final dioProvider = Provider<Dio>((ref) {
-  return DioClient.instance;
-});
 // ── Provider ──────────────────────────────────────────────
 final searchProvider =
     StateNotifierProvider.autoDispose<SearchNotifier, SearchState>((ref) {
-      return SearchNotifier(ref.watch(dioProvider));
+      return SearchNotifier(ref.read(searchRepositoryProvider));
     });

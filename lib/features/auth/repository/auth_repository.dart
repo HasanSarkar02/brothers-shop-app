@@ -1,6 +1,8 @@
 import '../../../core/api/dio_client.dart';
 import '../../../core/storage/local_storage.dart';
 import '../models/auth_model.dart';
+import '../../../core/exceptions/api_error_handler.dart';
+import '../../../core/exceptions/api_exception.dart';
 
 class AuthRepository {
   // ── Login ──────────────────────────────
@@ -8,29 +10,33 @@ class AuthRepository {
     required String identifier,
     required String password,
   }) async {
-    final guestSession = await LocalStorage.getGuestSessionId();
+    try {
+      final guestSession = await LocalStorage.getGuestSessionId();
 
-    final response = await DioClient.instance.post(
-      '/login',
-      data: {
-        'identifier': identifier,
-        'password': password,
-        'guest_session_id': guestSession,
-      },
-    );
+      final response = await DioClient.instance.post(
+        '/login',
+        data: {
+          'identifier': identifier,
+          'password': password,
+          'guest_session_id': guestSession,
+        },
+      );
 
-    final data = response.data;
-    if (data['status'] != true) {
-      throw Exception(data['message'] ?? 'Login failed');
+      final data = response.data;
+      if (data['status'] != true) {
+        throw ApiException(data['message'] ?? 'Login failed');
+      }
+
+      final token = data['data']['token'] as String;
+      final user = AuthUser.fromJson(data['data']['user']);
+
+      await LocalStorage.saveToken(token);
+      await LocalStorage.saveUser(data['data']['user']);
+
+      return user;
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
-
-    final token = data['data']['token'] as String;
-    final user = AuthUser.fromJson(data['data']['user']);
-
-    await LocalStorage.saveToken(token);
-    await LocalStorage.saveUser(data['data']['user']);
-
-    return user;
   }
 
   // ── Register ───────────────────────────
@@ -41,32 +47,36 @@ class AuthRepository {
     required String password,
     required String passwordConfirmation,
   }) async {
-    final guestSession = await LocalStorage.getGuestSessionId();
+    try {
+      final guestSession = await LocalStorage.getGuestSessionId();
 
-    final response = await DioClient.instance.post(
-      '/register',
-      data: {
-        'name': name,
-        if (email != null && email.isNotEmpty) 'email': email,
-        if (phone != null && phone.isNotEmpty) 'phone': phone,
-        'password': password,
-        'password_confirmation': passwordConfirmation,
-        'guest_session_id': guestSession,
-      },
-    );
+      final response = await DioClient.instance.post(
+        '/register',
+        data: {
+          'name': name,
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+          'guest_session_id': guestSession,
+        },
+      );
 
-    final data = response.data;
-    if (data['status'] != true) {
-      throw Exception(data['message'] ?? 'Registration failed');
+      final data = response.data;
+      if (data['status'] != true) {
+        throw ApiException(data['message'] ?? 'Registration failed');
+      }
+
+      final token = data['data']['token'] as String;
+      final user = AuthUser.fromJson(data['data']['user']);
+
+      await LocalStorage.saveToken(token);
+      await LocalStorage.saveUser(data['data']['user']);
+
+      return user;
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
-
-    final token = data['data']['token'] as String;
-    final user = AuthUser.fromJson(data['data']['user']);
-
-    await LocalStorage.saveToken(token);
-    await LocalStorage.saveUser(data['data']['user']);
-
-    return user;
   }
 
   // ── Social Login ───────────────────────
@@ -74,29 +84,33 @@ class AuthRepository {
     required String provider,
     required String accessToken,
   }) async {
-    final guestSession = await LocalStorage.getGuestSessionId();
+    try {
+      final guestSession = await LocalStorage.getGuestSessionId();
 
-    final response = await DioClient.instance.post(
-      '/social-login',
-      data: {
-        'provider': provider,
-        'access_token': accessToken,
-        'guest_session_id': guestSession,
-      },
-    );
+      final response = await DioClient.instance.post(
+        '/social-login',
+        data: {
+          'provider': provider,
+          'access_token': accessToken,
+          'guest_session_id': guestSession,
+        },
+      );
 
-    final data = response.data;
-    if (data['status'] != true) {
-      throw Exception(data['message'] ?? 'Social login failed');
+      final data = response.data;
+      if (data['status'] != true) {
+        throw ApiException(data['message'] ?? 'Social login failed');
+      }
+
+      final token = data['data']['token'] as String;
+      final user = AuthUser.fromJson(data['data']['user']);
+
+      await LocalStorage.saveToken(token);
+      await LocalStorage.saveUser(data['data']['user']);
+
+      return user;
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
-
-    final token = data['data']['token'] as String;
-    final user = AuthUser.fromJson(data['data']['user']);
-
-    await LocalStorage.saveToken(token);
-    await LocalStorage.saveUser(data['data']['user']);
-
-    return user;
   }
 
   // ── Logout ─────────────────────────────

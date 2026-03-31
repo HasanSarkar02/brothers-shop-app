@@ -26,9 +26,11 @@ class ProductFilter {
     String? sort,
     double? minPrice,
     double? maxPrice,
+    bool clearCategory = false,
+    bool clearSearch = false,
   }) => ProductFilter(
-    category: category ?? this.category,
-    search: search ?? this.search,
+    category: clearCategory ? null : (category ?? this.category),
+    search: clearSearch ? null : (search ?? this.search),
     sort: sort ?? this.sort,
     minPrice: minPrice ?? this.minPrice,
     maxPrice: maxPrice ?? this.maxPrice,
@@ -61,26 +63,30 @@ class ProductListState {
     bool? isLoading,
     bool? isLoadingMore,
     String? error,
+    bool clearError = false,
   }) => ProductListState(
     products: products ?? this.products,
     meta: meta ?? this.meta,
     isLoading: isLoading ?? this.isLoading,
     isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-    error: error ?? this.error,
+    error: clearError ? null : (error ?? this.error),
   );
 }
 
+// ── Product List Notifier ──────────────────────────
 class ProductListNotifier extends StateNotifier<ProductListState> {
   final ProductRepository _repo;
   final Ref _ref;
   int _currentPage = 1;
 
-  ProductListNotifier(this._repo, this._ref) : super(const ProductListState());
+  ProductListNotifier(this._repo, this._ref) : super(const ProductListState()) {
+    load(refresh: true);
+  }
 
   Future<void> load({bool refresh = false}) async {
-    if (refresh) {
+    if (refresh || state.products.isEmpty) {
       _currentPage = 1;
-      state = state.copyWith(isLoading: true, error: null);
+      state = state.copyWith(isLoading: true, clearError: true);
     }
 
     final filter = _ref.read(productFilterProvider);
@@ -103,9 +109,13 @@ class ProductListNotifier extends StateNotifier<ProductListState> {
         meta: meta,
         isLoading: false,
         isLoadingMore: false,
+        clearError: true,
       );
     } catch (e) {
-      print('❌ Product Error: $e');
+      if (!refresh && _currentPage > 1) {
+        _currentPage--;
+      }
+
       state = state.copyWith(
         isLoading: false,
         isLoadingMore: false,
@@ -115,12 +125,12 @@ class ProductListNotifier extends StateNotifier<ProductListState> {
   }
 
   Future<void> loadMore() async {
-    if (state.isLoadingMore) return;
+    if (state.isLoadingMore || state.isLoading) return;
     if (!(state.meta?.hasMore ?? false)) return;
 
     _currentPage++;
-    state = state.copyWith(isLoadingMore: true);
-    await load();
+    state = state.copyWith(isLoadingMore: true, clearError: true);
+    await load(); // refresh: false (default)
   }
 
   Future<void> applyFilter(ProductFilter filter) async {

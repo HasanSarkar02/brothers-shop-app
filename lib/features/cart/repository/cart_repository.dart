@@ -1,25 +1,32 @@
 import '../../../core/api/dio_client.dart';
+import '../../../core/exceptions/api_error_handler.dart';
+import '../../../core/exceptions/api_exception.dart';
 import '../models/cart_model.dart';
-import 'package:dio/dio.dart';
 
 class CartRepository {
+  // ── Get Cart ───────────────────────────────────────
   Future<CartSummary> getCart() async {
-    final response = await DioClient.instance.get('/cart');
-    final data = response.data['data'];
+    try {
+      final response = await DioClient.instance.get('/cart');
+      final data = response.data['data'];
 
-    final items = (data['items'] as List)
-        .map((e) => CartModel.fromJson(e))
-        .toList();
+      final items = (data['items'] as List)
+          .map((e) => CartModel.fromJson(e))
+          .toList();
 
-    return CartSummary(
-      items: items,
-      cartCount: data['cart_count'] ?? 0,
-      cartTotal: (data['cart_total'] as num?)?.toDouble() ?? 0.0,
-      savings: (data['savings'] as num?)?.toDouble() ?? 0.0,
-      isEmpty: data['is_empty'] ?? items.isEmpty,
-    );
+      return CartSummary(
+        items: items,
+        cartCount: data['cart_count'] ?? 0,
+        cartTotal: (data['cart_total'] as num?)?.toDouble() ?? 0.0,
+        savings: (data['savings'] as num?)?.toDouble() ?? 0.0,
+        isEmpty: data['is_empty'] ?? items.isEmpty,
+      );
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
   }
 
+  // ── Add to Cart ────────────────────────────────────
   Future<Map<String, dynamic>> addToCart({
     required int productId,
     int? variantId,
@@ -34,31 +41,53 @@ class CartRepository {
           'quantity': quantity,
         },
       );
-      return response.data;
-    } on DioException catch (e) {
-      if (e.response != null && e.response?.statusCode == 422) {
-        return e.response!.data;
+
+      final data = response.data;
+      if (data['status'] != true) {
+        throw ApiException(data['message'] ?? 'Failed to add to cart');
       }
-      rethrow;
+
+      return data;
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
     }
   }
 
+  // ── Update Cart ────────────────────────────────────
   Future<Map<String, dynamic>> updateCart({
     required int cartId,
     required int quantity,
   }) async {
-    final response = await DioClient.instance.patch(
-      '/cart/$cartId',
-      data: {'quantity': quantity},
-    );
-    return response.data;
+    try {
+      final response = await DioClient.instance.patch(
+        '/cart/$cartId',
+        data: {'quantity': quantity},
+      );
+
+      if (response.data['status'] != true) {
+        throw ApiException(response.data['message'] ?? 'Failed to update cart');
+      }
+      return response.data;
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
   }
 
+  // ── Remove From Cart ───────────────────────────────
   Future<void> removeFromCart(int cartId) async {
-    await DioClient.instance.delete('/cart/$cartId');
+    try {
+      await DioClient.instance.delete('/cart/$cartId');
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
   }
 
+  // ── Clear Cart ─────────────────────────────────────
   Future<void> clearCart() async {
-    await DioClient.instance.delete('/cart/clear');
+    try {
+      await DioClient.instance.delete('/cart/clear');
+    } catch (e) {
+      throw ApiErrorHandler.handle(e);
+    }
   }
 }
