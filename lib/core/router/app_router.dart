@@ -12,6 +12,7 @@ import '../../features/orders/screens/orders_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../shared/widgets/main_scaffold.dart';
 import '../../features/search/screens/search_screen.dart';
+import '../../features/chat/screens/chat_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -34,7 +35,7 @@ class AppRouter {
         ],
       ),
 
-      // Full screen routes (no bottom nav)
+      // Full screen routes
       GoRoute(
         path: '/product/:slug',
         builder: (c, s) => ProductDetailScreen(slug: s.pathParameters['slug']!),
@@ -54,6 +55,7 @@ class AppRouter {
         path: '/search',
         builder: (context, state) => const SearchScreen(),
       ),
+      GoRoute(path: '/chat', builder: (c, s) => const ChatScreen()),
     ],
   );
 }

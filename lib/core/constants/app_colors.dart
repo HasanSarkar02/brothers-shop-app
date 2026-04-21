@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // আপনার website এর color এর সাথে match করা হয়েছে
   static const primary = Color(0xFFE53E3E); // Red
   static const ink = Color(0xFF1A1A2E);
   static const inkLight = Color(0xFF6B7280);

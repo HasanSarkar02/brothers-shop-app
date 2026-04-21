@@ -130,9 +130,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: CustomScrollView(
             slivers: [
               // ── App Bar ──────────────────────────
-              // ... আগের ইম্পোর্টগুলো ...
-
-              // ── App Bar ──────────────────────────
               SliverAppBar(
                 floating: true,
                 snap: true,
@@ -141,7 +138,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 title: SvgPicture.network(
                   'https://brothersfe.com/logo.svg',
                   height: 32.h,
-                  // SVG লোড হতে সমস্যা হলে এই placeholder দেখাবে
                   placeholderBuilder: (BuildContext context) => Text(
                     'BROTHERS',
                     style: TextStyle(
@@ -158,6 +154,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     onPressed: () {
                       context.push('/search');
                     },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chat_bubble_outline_rounded),
+                    color: AppColors.ink,
+                    onPressed: () => context.push('/chat'),
                   ),
                   IconButton(
                     icon: const Icon(Icons.notifications_none_rounded),

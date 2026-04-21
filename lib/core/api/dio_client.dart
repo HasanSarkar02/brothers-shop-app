@@ -26,7 +26,7 @@ class DioClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          // Token add করো
+          // Token add
           final token = await LocalStorage.getToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -40,7 +40,7 @@ class DioClient {
         },
 
         onError: (error, handler) async {
-          // 401 — token invalid, logout করো
+          // 401 — token invalid, logout
           if (error.response?.statusCode == 401) {
             await LocalStorage.deleteToken();
             await LocalStorage.clearUser();

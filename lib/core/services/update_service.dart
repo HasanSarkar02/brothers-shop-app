@@ -90,7 +90,7 @@ class UpdateService {
         }
       }
 
-      // ২. Save path নির্ধারণ করো
+      // Save path
       Directory? dir;
       if (Platform.isAndroid) {
         dir =
