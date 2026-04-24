@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://brothersfe.com/storage/logo.png" alt="Brothers Logo" width="90" height="90" onerror="this.style.display='none'"/>
+<img src="https://brothersfe.com/storage/app_icon.png" alt="Brothers Logo" width="90" height="90" onerror="this.style.display='none'"/>
 
 # 🛋️ Brothers Furniture & Electronics
 ### Mobile E-Commerce Application
